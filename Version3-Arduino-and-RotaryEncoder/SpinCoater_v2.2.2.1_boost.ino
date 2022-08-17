@@ -5,18 +5,23 @@ Code Version  2.2.x
 
 Copyright 2022 Adam Shnier
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 The above license excludes snippets of code from external sources which have been referenced in comments where used.
 
@@ -154,12 +159,13 @@ byte pos = 7;
 // =================
 void setup() {
   bReport = 0; // Reports parameters during run
-  bDebug = 0; // Reports set paramters on start and before run
+  bDebug = 0; // Reports set parameters on start and before run
   if (bDebug || bReport){
     while (!Serial) {
       ; // wait for serial port to connect. Needed for native USB
     }
   }
+  // Initial spin parameters to be overwritten
   RPMs1 = 2000;
   RPMs2 = 3000;
   t1 = 5;
@@ -263,6 +269,9 @@ void loop() {
  
   }
   while (!bRun){
+    // ===============================================
+    // Spin parameter setting using the rotary encoder
+    // ===============================================
     analogWrite(pwm,0); //bug fix for motor not stopping
     clkState = digitalRead(A2);
     dtState = digitalRead(A1);
@@ -353,6 +362,9 @@ void loop() {
       }
     } // end RE press
     
+    // ======================================
+    // Display parameters before start of run 
+    // ======================================
     if ((millis() - tStart) > 200){
       display.clearDisplay();
       display.setTextSize(1);
@@ -387,6 +399,10 @@ void loop() {
       display.display();
       tStart = millis(); // timeout for start
     }
+    
+    //
+    // ======================================
+    
     if (digitalRead(btnStart)){ // Big red button if connected
       bStart = true;
       break;
@@ -396,7 +412,9 @@ void loop() {
   // :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   
+  // 
   if (bStart){
+      // Load parameter values EEPROM      
       EEPROM.update(515, (round(t1)/1000));
       EEPROM.update(516, (round(t2)/1000));
       EEPROM.update(517, (round(ramp)/1000));
@@ -405,6 +423,9 @@ void loop() {
       EEPROM.update(522, s1);
       EEPROM.update(523, s2);
       
+      // =========================
+      // Prepare variables for run
+      // =========================
       if (true){
         //Setup run
         bRun = 1;
@@ -449,15 +470,21 @@ void loop() {
           Serial.print(", RPMs2: ");
           Serial.println(RPMs2);
       }
+      
+    // ==========
+    // Start Run
+    // ==========
     while (bRun){
 
-      if ((millis() - tStart) > 600){ 
+      if ((millis() - tStart) > 600){   
+        // (above) Delay to prevent double pressing or bounce from aborting a run
+        // Abort run
         if (!digitalRead(btnAction)){
           done();
         }
       } // Close: button
       
-      // determine stage
+      // determine stage and set speed for fixed speed stages
       tCurr = millis();
       if ((tCurr > tr1p) && (nStage == 0)){
         spd = s1;
@@ -472,7 +499,7 @@ void loop() {
         break;
       }
   
-      // set speed
+      // set speed for ramping stages
       if (bRPM4ramp){
         if (nStage == 0){
           spd = PWMlookup((float(tCurr-tStart))*ramprRPM);
@@ -531,6 +558,7 @@ void showRPM(){
   float cTotal = 0;
   int cCount = 0;
   tCurr = millis();
+  // Leave out sensor intervals > 0.5s
   for(byte k=0; k < 18; k++){
     if (c[k] < 500000){ //micros
       cCount += 1;
