@@ -2,6 +2,7 @@
 This spin coater version makes use of a MOSFET and an Arduino nano to control a DC motor in a 2-stage program. A series of pots are used to control the program parameters, specifically speed 1, speed 2, time 1, time 2 and ramp time.
 
 ## Change log v1.4
+- Licence added
 - showRPM from "int" to "void", previously returned RPM
 - showRPM updated as per v2.2.2 (hV3) to better deal with 0 or near 0 rpm
 - updated "book checkRed()" function

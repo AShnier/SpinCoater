@@ -1,7 +1,7 @@
 /*
 Code for Spin coater hV2
 
-Code Version  1.2.x
+Code Version  1.4.x
 
 Copyright 2022 Adam Shnier
 
@@ -68,10 +68,11 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 // =====================================================================
 
 // RPM variables
-float tachOld = millis();
+float tachOld = micros();
 float c[18]; // array from which the displayed speed is an average
 float c0 = 100000; // used to check for a non zero value before updating "c"
 float cTotal = 600000;
+unsigned long tRPMnull; // value given in Setup
 int rpm = 0;
 
 int i; // loop counter
@@ -149,8 +150,9 @@ void setup() {
   bRPM4ramp = bool(EEPROM.read(513)); 
   bRPM4set = bool(EEPROM.read(514)); 
   // rpm values
+  tRPMnull = 1000000;
   for (i=0; i < 18; i++){
-    c[i] = 100000;
+    c[i] = tRPMnull;
   }
     // initialize set parameters
   for (i=0; i < 5; i++){
@@ -458,19 +460,20 @@ void showRPM(){
   int cCount = 0;
   tCurr = millis();
   for(byte k=0; k < 18; k++){
-    if (c[k] < 500000){ //micros
+    if (c[k] < 500){ // milliseconds
       cCount += 1;
       cTotal += c[k];
     }
   }
   if (cCount > 0){
-    rpm = 20000/(cTotal/cCount); //removed // 60000 sec.min^{-1}/ 3 reading per rotation
+    rpm = 20000/(cTotal/cCount); // 60000 sec.min^{-1}/ 3 reading per rotation
   } else {
     rpm = 0;
   }
-  if ((micros() - tachOld) > (500000)){ 
+  if ((micros() - tachOld) > (500000)){ // microseconds
     rpm = 0;
-    if ((micros() - tachOld) > (3000000)){
+    // clear c[i] intervals after 3 seconds
+    if ((micros() - tachOld) > (3000000)){ // microseconds
         for (i=0; i < 18; i++){
           c[i] = tRPMnull;
         }

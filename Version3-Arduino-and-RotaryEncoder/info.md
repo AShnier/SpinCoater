@@ -3,6 +3,11 @@ This spin coater version makes use of a MOSFET and an Arduino nano to control a 
 
 ## Spin coater code Version 2.x
 
+## Change log v2.3
+- Licence added
+- Code clean-up (incl - Bubble sort removed)
+- Display refresh interval reduced fro 300 to 200 mS in line with v1.4 (hV2)
+
 ## Change log v2.2.2
 - Tachometer, long intervals between interrupts are passed over and no longer included in the average RPM 
 - General code clean up
