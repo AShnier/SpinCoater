@@ -79,8 +79,8 @@ int i; // loop counter
 // name of analog read pins
 //const uint8_t p[5] = {A6, A5, A4, A3, A2};
 // Spin variable array
-//int a[5]; // unused
-//int b[5]; // unused
+int a[5];
+int b[5];
 
 byte s1, s2;
 int RPMs1, RPMs2;
@@ -88,15 +88,14 @@ unsigned int t1, t2, ramp;
 unsigned long tRampOld = 0;
 
 //differences
-// byte da[5] = {0, 0, 0, 0, 0}; // unused in hV3
-// const byte dacc = 5; // unused in hV3
+byte da[5] = {0, 0, 0, 0, 0};
+const byte dacc = 5;
 
 float ramprPWM, ramprRPM;
 unsigned long tStart = 0; // used in calibrate and the main loop
 
 bool bDebug = 0;
 bool bReport = 0;
-bool bCheckCal = 0;
 
 bool bStart;
 int nStage = 0;
@@ -140,7 +139,6 @@ int RPMMin = 400;
 byte sMax = 240; // can be set up to 255
 byte sMin = 13;
 float temp = 0;
-float temp2 = 0;
 
 // Limits for setting sMin and sMax
 //byte sMaxH = 255;
@@ -215,34 +213,23 @@ void setup() {
     sMax = 230;
     EEPROM.update(525, sMax);
   }
-  // speed = 0 is a special case handled elsewhere
+  // speed = 0 is a special case handled elsewhere 
   if (sMin > sMinH || sMin < 1 || sMin >= sMax) {
     sMin = 13;
     EEPROM.update(526, sMin);
   }
-
-  // Check if RPM calibration value is in a passable range
-  temp = RPMlookup(sMin); // "temp" is a float variable used with a few lines of assigning it a value
-  temp2 =  RPMlookup(sMax);
-  if ((temp < temp2) && (temp >= 0) && (temp2 < 10000)) {
-    RPMMin = temp;
-    RPMMax = temp2;
-  } else {
-    bCheckCal = 1;
-  } // Close: if (temp < temp2) {
-
-
+  
   if (t1 > t1Max || t1 < 0) {
     t1 = t1Max;
-    EEPROM.update(515, (round(t1Max / 1000)));
+    EEPROM.update(515, (round(t1Max/1000)));
   }
   if (t2 > t2Max || t2 < 0 || t2 % 5000) { // t2 % 5000 is for 5 second intervals in setting t2
     t2 = t2Max;
-    EEPROM.update(516, (round(t2Max / 1000)));
+    EEPROM.update(516, (round(t2Max/1000)));
   }
   if (ramp > rampMax || ramp < 0) {
     ramp = 0;
-    EEPROM.update(517, (round(ramp / 1000)));
+    EEPROM.update(517, (round(ramp/1000)));
   }
   if ((s1 != 0 && s1 < sMin) || s1 > sMax) {
     s1 = 0;
@@ -275,29 +262,10 @@ void setup() {
   display.setCursor(0, 0);
   hello();
 
-  if (bCheckCal) {
-    display.clearDisplay();
-    display.setTextSize(2);
-    display.println("Check");
-    display.setTextSize(1);
-    display.println("Calibration");
-    display.display();
-    delay(2000);
-    if (bRPM4ramp) {
-      display.clearDisplay();
-      display.setTextSize(1);
-      display.println("Please");
-      display.println("calibrate");
-      display.println("or set:");
-      display.println("bRPM4ramp = 0");
-      display.display();
-      delay(5000);
-    }
-  }
   /* // this was used for testing the code without using self-calibration
-  for (i = 0; i < (256-13); i += 1){
+    for (i = 0; i < (256-13); i += 1){
     EEPROMWriteInt( (2*i), meas[i]);
-  }
+    }
   */
 }
 
@@ -328,20 +296,18 @@ void loop() {
     // ===============================================
     analogWrite(pwm, 0); //bug fix for motor not stopping
     REdir = readRotate();
-    //   clkState = digitalRead(A2);
-    //   dtState = digitalRead(A1);
-
-    //   if ((clkState != clkLastState) && (clkState == false)) {
-    if (REdir != 0) {
-      /*
-           if (dtState != clkState) {
-      // clockwise
-             REdir = 1;
-           } else {
-      // anticlock
-             REdir = -1;
-           }
-      */
+ //   clkState = digitalRead(A2);
+ //   dtState = digitalRead(A1);
+    
+ //   if ((clkState != clkLastState) && (clkState == false)) {
+    if (1) { 
+ //     if (dtState != clkState) {
+        // clockwise
+ //       REdir = 1;
+ //     } else {
+        // anticlock
+ //       REdir = -1;
+ //     }
       switch (pos) {
         case 0:
           temp = t1 + (REdir * 1000);
@@ -353,7 +319,7 @@ void loop() {
           temp = s1 + (REdir * 1);
           if ((temp >= sMin) && (temp <= sMax)) {
             s1 = temp;
-          } else if ((temp == (sMin - 1)) || (temp > sMax) || (temp <= 0)) {
+          } else if ((temp < sMin) && (temp > 10)) {
             s1 = 0;
           } else s1 = sMin;
           RPMs1 = RPMlookup(s1);
@@ -363,7 +329,7 @@ void loop() {
           temp = 100 * round(temp / 100);
           if ((temp >= RPMMin) && (temp <= RPMMax)) {
             RPMs1 = temp;
-          } else if ((temp >= (RPMMin - 100)) || (temp > RPMMax) || (temp <= 0)) {
+          } else if ((temp < RPMMin) && (temp > 10)) {
             RPMs1 = 0;
           } else RPMs1 = RPMMin;
           s1 = PWMlookup(RPMs1);
@@ -378,7 +344,7 @@ void loop() {
           temp = s2 + (REdir * 1);
           if ((temp >= sMin) && (temp <= sMax)) {
             s2 = temp;
-          } else if ((temp == (sMin - 1)) || (temp > sMax) || (temp <= 0)) {
+          } else if ((temp < sMin) && (temp > 10)) {
             s2 = 0;
           } else s2 = sMin;
           RPMs2 = RPMlookup(s2);
@@ -388,7 +354,7 @@ void loop() {
           temp = 100 * round(temp / 100);
           if ((temp >= RPMMin) && (temp <= RPMMax)) {
             RPMs2 = temp;
-          } else if ((temp >= (RPMMin - 100)) || (temp > RPMMax) || (temp <= 0)) {
+          } else if ((temp < RPMMin) && (temp > 10)) {
             RPMs2 = 0;
           } else RPMs2 = RPMMin;
           s2 = PWMlookup(RPMs2);
@@ -400,9 +366,9 @@ void loop() {
           }
           break;
       } // Close: Switch
-      //   delay(10); // millisecond delay to prevent double counts
-    } // if (REdir != 0) {
-    //  clkLastState = clkState;
+   //   delay(10); // millisecond delay to prevent double counts
+    } // Close: RE turn
+  //  clkLastState = clkState;
 
     if (!digitalRead(btnAction)) {
       if (checkRed(btnAction, bAction)) { // long press
@@ -771,18 +737,14 @@ void Set2Defaults() {
     EEPROM.update(513, bRPM4ramp);
     bBoost = 1;
     EEPROM.update(524, bBoost);
-    sMax = 230;
-    EEPROM.update(525, sMax);
-    sMin = 13;
-    EEPROM.update(526, sMin);
-
+    
     display.clearDisplay();
     display.setTextSize(1);
     display.println("Set2Defaults");
+    display.println("");
     display.println("bSPDcorr:0");
     display.println("bRPM4ramp:1");
     display.println("bBoost:1");
-    display.println("sMin:"+String(sMin)+" sMax:"+String(sMin));
     display.display();
     delay(1200); // pause
   } // Close: If (bStart)
@@ -839,7 +801,7 @@ void menu() {
           EEPROM.update(525, temp);
           done();
         }
-
+        
         // no long press action for "7" and "8"
       } else { // short
         if (place == 0) {
@@ -904,7 +866,7 @@ void menu() {
     switch (place) {
       case 7:
         temp = temp + readRotate();
-        delay(10);
+        delay(20);
         if (temp != sMin) {
           tTimeout = millis();
         }
@@ -923,7 +885,7 @@ void menu() {
         break;
       case 8:
         temp = temp + readRotate();
-        delay(10);
+        delay(20);
         if (temp != sMax) {
           tTimeout = millis();
         }
@@ -948,22 +910,22 @@ void menu() {
 // ============================
 
 int readRotate() {
-  int dir = 1;
-  clkState = digitalRead(A2);
-  dtState = digitalRead(A1);
-  if ((clkState != clkLastState) && (clkState == false)) {
-    if (dtState != clkState) {
-      // clockwise
-      dir = 1;
-    } else {
-      // anticlock
-      dir = -1;
-    }
-  } else
+    int dir = 1;
+    clkState = digitalRead(A2);
+    dtState = digitalRead(A1);
+    if ((clkState != clkLastState) && (clkState == false)) {
+      if (dtState != clkState) {
+        // clockwise
+        dir = 1;
+      } else {
+        // anticlock
+        dir = -1;
+      }
+    } else
     dir = 0;
-  delay(3); // millisecond delay to prevent double counts
-  clkLastState = clkState;
-  return dir;
+    delay(3); // millisecond delay to prevent double counts
+    clkLastState = clkState;
+    return dir;
 }
 
 // Long or short press
@@ -1008,7 +970,6 @@ void hello() {
   display.setTextSize(2);
   display.println("Hello!");
   display.display();
-  delay(300);
 }
 
 void done() {
